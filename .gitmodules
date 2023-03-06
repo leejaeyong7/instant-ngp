@@ -12,7 +12,7 @@
 	url = https://github.com/Tom94/tinylogger
 [submodule "dependencies/tiny-cuda-nn"]
 	path = dependencies/tiny-cuda-nn
-	url = https://github.com/NVlabs/tiny-cuda-nn
+	url = https://github.com/leejaeyong7/tiny-cuda-nn
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
 	url = https://github.com/ocornut/imgui.git
