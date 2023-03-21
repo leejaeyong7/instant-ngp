@@ -172,7 +172,8 @@ def main(args):
     for idx in tqdm(list(range(0, n_images, args.subsample)), desc="Computing Max Depth"):
         # dh x dw float32 
         depth_path = dataset_dir / 'rgbd' / f'{idx}.depth'
-        depth = load_depth(depth_path)
+        depth = load_depth(depth_path).copy()
+        depth[np.isnan(depth)] = 0
         max_depth = max(depth.max(), max_depth)
 
     frames = []
@@ -192,10 +193,14 @@ def main(args):
         image.save(out_image_path)
 
         # extract depth
-        depth = load_depth(depth_path)
-        conf = load_depth(conf_path, dtype=np.uint8)
+        depth = load_depth(depth_path).copy()
+        try:
+            conf = load_depth(conf_path, dtype=np.uint8)
+        except:
+            conf = np.ones_like(depth, dtype=np.uint8) * 2
 
         # save depth
+        depth[np.isnan(depth)] = 0
         min_d = depth[conf == 2].min()
         max_d = depth[conf == 2].max()
 

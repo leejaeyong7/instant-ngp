@@ -4,22 +4,8 @@
 		"otype": "QFF",
 		"n_quants": 80,
 		"n_features": 4,
-		"n_frequencies": 8,
+		"n_frequencies": 4,
 		"log2_min_freq": 0,
 		"log2_max_freq": 6
-	},
-	"network": {
-		"otype": "FullyFusedMLP",
-		"activation": "ReLU",
-		"output_activation": "None",
-		"n_neurons": 16,
-		"n_hidden_layers": 1
-	},
-	"rgb_network": {
-		"otype": "FullyFusedMLP",
-		"activation": "ReLU",
-		"output_activation": "None",
-		"n_neurons": 16,
-		"n_hidden_layers": 1
 	}
 }
