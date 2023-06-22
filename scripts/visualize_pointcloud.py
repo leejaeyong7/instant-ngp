@@ -37,6 +37,7 @@ def main(args):
 
     # read frames 
     scale = trans['integer_depth_scale']
+    pcs = []
     for frame in tqdm(trans['frames']):
         pose = np.array(frame['transform_matrix'])
         pose[:, 1:3] *= -1
@@ -49,7 +50,11 @@ def main(args):
         rgbi = o3d.geometry.Image(np.ascontiguousarray(colors))
         depthi = o3d.geometry.Image(np.ascontiguousarray(depth.astype(np.float32)))
         rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(rgbi, depthi, depth_scale=1, convert_rgb_to_intensity=False)
+        pc = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd_image, intrinsic, extrinsic)
         volume.integrate(rgbd_image, intrinsic, extrinsic)
+        pcs.append(pc)
+
+    o3d.visualization.draw_geometries(pcs)
 
     mesh = volume.extract_triangle_mesh()
     mesh.compute_vertex_normals()

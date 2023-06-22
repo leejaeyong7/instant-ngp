@@ -141,16 +141,19 @@ def normalize_transforms(transforms, translation, scale):
 def main(args):
     dataset_dir = Path(args.scene)
     output_dir = Path(args.output)
-    (output_dir / 'images').mkdir(exist_ok=True, parents=True)
-    (output_dir / 'depths').mkdir(exist_ok=True, parents=True)
+    r3d_to_transforms(dataset_dir, output_dir, args.rotate, args.subsample)
 
-    with open(dataset_dir / 'metadata') as f:
+def r3d_to_transforms(r3d_path, output_path, rotate=False, subsample=1):
+    (output_path / 'images').mkdir(exist_ok=True, parents=True)
+    (output_path / 'depths').mkdir(exist_ok=True, parents=True)
+
+    with open(r3d_path / 'metadata') as f:
         metadata = json.load(f)
 
     poses = np.array(metadata['poses'])
     n_images = len(poses)
 
-    if not args.rotate:
+    if not rotate:
         h = metadata['h']
         w = metadata['w']
         K = np.array(metadata['K']).reshape([3, 3]).T
@@ -169,25 +172,25 @@ def main(args):
 
 
     max_depth = 0
-    for idx in tqdm(list(range(0, n_images, args.subsample)), desc="Computing Max Depth"):
+    for idx in tqdm(list(range(0, n_images, subsample)), desc="Computing Max Depth"):
         # dh x dw float32 
-        depth_path = dataset_dir / 'rgbd' / f'{idx}.depth'
+        depth_path = r3d_path / 'rgbd' / f'{idx}.depth'
         depth = load_depth(depth_path)
         max_depth = max(depth.max(), max_depth)
 
     frames = []
-    for idx in tqdm(list(range(0, n_images, args.subsample)), desc="Processing Images"):
+    for idx in tqdm(list(range(0, n_images, subsample)), desc="Processing Images"):
         # Link the image.
-        img_path = dataset_dir / 'rgbd' / f'{idx}.jpg'
-        depth_path = dataset_dir / 'rgbd' / f'{idx}.depth'
-        conf_path = dataset_dir / 'rgbd' / f'{idx}.conf'
+        img_path = r3d_path / 'rgbd' / f'{idx}.jpg'
+        depth_path = r3d_path / 'rgbd' / f'{idx}.depth'
+        conf_path = r3d_path / 'rgbd' / f'{idx}.conf'
 
-        out_image_path = output_dir / 'images' / f'{idx}.png'
-        out_depth_path = output_dir / 'depths' / f'{idx}.depth.png'
+        out_image_path = output_path / 'images' / f'{idx}.png'
+        out_depth_path = output_path / 'depths' / f'{idx}.depth.png'
 
         # copy image
         image = Image.open(img_path)
-        if args.rotate:
+        if rotate:
             image = image.rotate(90, expand=1)
         image.save(out_image_path)
 
@@ -203,7 +206,7 @@ def main(args):
         depth = (depth*65535 /float(max_depth)).astype(np.uint16)
         depth[conf != 2] = 0
 
-        if args.rotate:
+        if rotate:
             depth = np.rot90(depth)
         depth = cv2.resize(depth, dsize=(image.width, image.height), interpolation=cv2.INTER_NEAREST)
         cv2.imwrite(str(out_depth_path), depth)
@@ -215,7 +218,7 @@ def main(args):
         c2w = np.eye(4)
         c2w[:3, :3] = q.rotation_matrix
         c2w[:3, -1] = [pose[4], pose[5], pose[6]]
-        if args.rotate:
+        if rotate:
             c2w = rotate_camera(c2w)
             c2w = swap_axes(c2w)
 
@@ -250,7 +253,7 @@ def main(args):
     translation, scale = find_transforms_center_and_scale(transforms)
     normalized_transforms = normalize_transforms(transforms, translation, scale)
 
-    output_path = output_dir / 'transforms.json'
+    output_path = output_path / 'transforms.json'
     with open(output_path, "w") as outfile:
         json.dump(normalized_transforms, outfile, indent=2)
 
