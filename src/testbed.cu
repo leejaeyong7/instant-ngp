@@ -443,6 +443,19 @@ void Testbed::next_training_view() {
 	set_camera_to_training_view(m_nerf.training.view);
 }
 
+void Testbed::add_training_views_to_camera_path() {
+	for (int i = 0; i < m_nerf.training.dataset.n_images; ++i) {
+		int n = std::max(0, int(m_camera_path.keyframes.size()) - 1);
+		auto camera = get_xform_given_rolling_shutter(m_nerf.training.transforms[i], m_nerf.training.dataset.metadata[i].rolling_shutter, vec2{0.5f, 0.5f}, 0.0f);
+		int j = (int) ceil(m_camera_path.play_time * (float) n + 0.001f);
+		if (j > m_camera_path.keyframes.size()) j = m_camera_path.keyframes.size();
+		if (j < 0) j = 0;
+		m_camera_path.keyframes.insert(m_camera_path.keyframes.begin() + j, CameraKeyframe(camera, m_slice_plane_z, m_scale, fov(), m_aperture_size, m_nerf.glow_mode, m_nerf.glow_y_cutoff));
+		n = std::max(0, int(m_camera_path.keyframes.size()) - 1);
+		m_camera_path.play_time = n ? float(j) / float(n) : 1.f;
+	}
+}
+
 void Testbed::set_camera_to_training_view(int trainview) {
 	auto old_look_at = look_at();
 	m_camera = m_smoothed_camera = get_xform_given_rolling_shutter(m_nerf.training.transforms[trainview], m_nerf.training.dataset.metadata[trainview].rolling_shutter, vec2{0.5f, 0.5f}, 0.0f);
@@ -495,7 +508,7 @@ void Testbed::set_train(bool mtrain) {
 	m_train = mtrain;
 }
 
-void Testbed::compute_and_save_marching_cubes_mesh(const char* filename, ivec3 res3d , BoundingBox aabb, float thresh, bool unwrap_it) {
+void Testbed::compute_and_save_marching_cubes_mesh(const fs::path& filename, ivec3 res3d , BoundingBox aabb, float thresh, bool unwrap_it) {
 	mat3 render_aabb_to_local = mat3(1.0f);
 	if (aabb.is_empty()) {
 		aabb = m_testbed_mode == ETestbedMode::Nerf ? m_render_aabb : m_aabb;
@@ -505,7 +518,7 @@ void Testbed::compute_and_save_marching_cubes_mesh(const char* filename, ivec3 r
 	save_mesh(m_mesh.verts, m_mesh.vert_normals, m_mesh.vert_colors, m_mesh.indices, filename, unwrap_it, m_nerf.training.dataset.scale, m_nerf.training.dataset.offset);
 }
 
-ivec3 Testbed::compute_and_save_png_slices(const char* filename, int res, BoundingBox aabb, float thresh, float density_range, bool flip_y_and_z_axes) {
+ivec3 Testbed::compute_and_save_png_slices(const fs::path& filename, int res, BoundingBox aabb, float thresh, float density_range, bool flip_y_and_z_axes) {
 	mat3 render_aabb_to_local = mat3(1.0f);
 	if (aabb.is_empty()) {
 		aabb = m_testbed_mode == ETestbedMode::Nerf ? m_render_aabb : m_aabb;
@@ -520,13 +533,15 @@ ivec3 Testbed::compute_and_save_png_slices(const char* filename, int res, Boundi
 		aabb.inflate(range * aabb.diag().x/res3d.x);
 	}
 	auto res3d = get_marching_cubes_res(res, aabb);
-	if (m_testbed_mode == ETestbedMode::Sdf)
-		range *= -aabb.diag().x/res3d.x; // rescale the range to be in output voxels. ie this scale factor is mapped back to the original world space distances.
-			// negated so that black = outside, white = inside
-	char fname[128];
-	snprintf(fname, sizeof(fname), ".density_slices_%dx%dx%d.png", res3d.x, res3d.y, res3d.z);
+	if (m_testbed_mode == ETestbedMode::Sdf) {
+		// rescale the range to be in output voxels. ie this scale factor is mapped back to the original world space distances.
+		// negated so that black = outside, white = inside
+		range *= -aabb.diag().x / res3d.x;
+	}
+
+	std::string fname = fmt::format(".density_slices_{}x{}x{}.png", res3d.x, res3d.y, res3d.z);
 	GPUMemory<float> density = (m_render_ground_truth && m_testbed_mode == ETestbedMode::Sdf) ? get_sdf_gt_on_grid(res3d, aabb, render_aabb_to_local) : get_density_on_grid(res3d, aabb, render_aabb_to_local);
-	save_density_grid_to_png(density, (std::string(filename) + fname).c_str(), res3d, thresh, flip_y_and_z_axes, range);
+	save_density_grid_to_png(density, filename.str() + fname, res3d, thresh, flip_y_and_z_axes, range);
 	return res3d;
 }
 
@@ -1382,6 +1397,10 @@ void Testbed::imgui() {
 			}
 
 			if (m_testbed_mode == ETestbedMode::Nerf) {
+				if (ImGui::Button("Add training views to camera path")) {
+					add_training_views_to_camera_path();
+				}
+
 				if (ImGui::Button("First")) {
 					first_training_view();
 				}
@@ -1589,7 +1608,7 @@ void Testbed::imgui() {
 			ImGui::SameLine();
 
 			if (imgui_colored_button("Save density PNG", -0.7f)) {
-				Testbed::compute_and_save_png_slices(m_data_path.str().c_str(), m_mesh.res, {}, m_mesh.thresh, density_range, flip_y_and_z_axes);
+				compute_and_save_png_slices(m_data_path, m_mesh.res, {}, m_mesh.thresh, density_range, flip_y_and_z_axes);
 			}
 
 			if (m_testbed_mode == ETestbedMode::Nerf) {
@@ -1600,27 +1619,29 @@ void Testbed::imgui() {
 					// Alternatively, if the true transparency of a given voxel is desired, one could use the voxel size,
 					// the voxel diagonal, or some form of expected ray length through the voxel, given random directions.
 					GPUMemory<vec4> rgba = get_rgba_on_grid(res3d, effective_view_dir, true, 0.01f);
-					auto dir = m_data_path / "rgba_slices";
+					auto dir = m_data_path.is_directory() || m_data_path.empty() ? (m_data_path / "rgba_slices") : (m_data_path.parent_path() / fmt::format("{}_rgba_slices", m_data_path.filename()));
 					if (!dir.exists()) {
 						fs::create_directory(dir);
 					}
-					save_rgba_grid_to_png_sequence(rgba, dir.str().c_str(), res3d, flip_y_and_z_axes);
+
+					save_rgba_grid_to_png_sequence(rgba, dir, res3d, flip_y_and_z_axes);
 				}
 				if (imgui_colored_button("Save raw volumes", 0.4f)) {
 					auto effective_view_dir = flip_y_and_z_axes ? vec3{0.0f, 1.0f, 0.0f} : vec3{0.0f, 0.0f, 1.0f};
 					auto old_local = m_render_aabb_to_local;
 					auto old_aabb = m_render_aabb;
 					m_render_aabb_to_local = mat3(1.0f);
-					auto dir = m_data_path / "volume_raw";
+					auto dir = m_data_path.is_directory() || m_data_path.empty() ? (m_data_path / "volume_raw") : (m_data_path.parent_path() / fmt::format("{}_volume_raw", m_data_path.filename()));
 					if (!dir.exists()) {
 						fs::create_directory(dir);
 					}
+
 					for (int cascade = 0; (1<<cascade)<= m_aabb.diag().x+0.5f; ++cascade) {
 						float radius = (1<<cascade) * 0.5f;
 						m_render_aabb = BoundingBox(vec3(0.5f-radius), vec3(0.5f+radius));
 						// Dump raw density values that the user can then convert to alpha as they please.
 						GPUMemory<vec4> rgba = get_rgba_on_grid(res3d, effective_view_dir, true, 0.0f, true);
-						save_rgba_grid_to_raw_file(rgba, dir.str().c_str(), res3d, flip_y_and_z_axes, cascade);
+						save_rgba_grid_to_raw_file(rgba, dir, res3d, flip_y_and_z_axes, cascade);
 					}
 					m_render_aabb_to_local = old_local;
 					m_render_aabb = old_aabb;
@@ -2767,7 +2788,7 @@ void Testbed::train_and_render(bool skip_rendering) {
 		view.camera0 = m_smoothed_camera;
 
 		// Motion blur over the fraction of time that the shutter is open. Interpolate in log-space to preserve rotations.
-		view.camera1 = m_camera_path.rendering ? camera_lerp(m_smoothed_camera, m_camera_path.render_frame_end_camera, m_camera_path.render_settings.shutter_fraction) : view.camera0;
+		view.camera1 = m_camera_path.rendering ? camera_log_lerp(m_smoothed_camera, m_camera_path.render_frame_end_camera, m_camera_path.render_settings.shutter_fraction) : view.camera0;
 
 		view.visualized_dimension = m_visualized_dimension;
 		view.relative_focal_length = m_relative_focal_length;
@@ -3434,7 +3455,7 @@ bool Testbed::want_repl() {
 void Testbed::apply_camera_smoothing(float elapsed_ms) {
 	if (m_camera_smoothing) {
 		float decay = std::pow(0.02f, elapsed_ms/1000.0f);
-		m_smoothed_camera = camera_lerp(m_smoothed_camera, m_camera, 1.0f - decay);
+		m_smoothed_camera = camera_log_lerp(m_smoothed_camera, m_camera, 1.0f - decay);
 	} else {
 		m_smoothed_camera = m_camera;
 	}

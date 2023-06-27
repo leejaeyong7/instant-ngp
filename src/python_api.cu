@@ -163,7 +163,7 @@ py::array_t<float> Testbed::render_to_cpu(int width, int height, int spp, bool l
 		float end_alpha = ((float)i + 1.0f)/(float)spp * shutter_fraction;
 
 		auto sample_start_cam_matrix = start_cam_matrix;
-		auto sample_end_cam_matrix = camera_lerp(start_cam_matrix, end_cam_matrix, shutter_fraction);
+		auto sample_end_cam_matrix = camera_log_lerp(start_cam_matrix, end_cam_matrix, shutter_fraction);
 		if (i == 0) {
 			prev_camera_matrix = sample_start_cam_matrix;
 		}
@@ -514,6 +514,7 @@ PYBIND11_MODULE(pyngp, m) {
 		.def_readwrite("screen_center", &Testbed::m_screen_center)
 		.def_readwrite("training_batch_size", &Testbed::m_training_batch_size)
 		.def("set_nerf_camera_matrix", &Testbed::set_nerf_camera_matrix)
+		.def("add_training_views_to_camera_path", &Testbed::add_training_views_to_camera_path)
 		.def("set_camera_to_training_view", &Testbed::set_camera_to_training_view)
 		.def("first_training_view", &Testbed::first_training_view)
 		.def("last_training_view", &Testbed::last_training_view)

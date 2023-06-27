@@ -58,5 +58,3 @@ Please cite the original Instant-NGP paper and the QFF for use of this work
 
 Copyright © 2022, NVIDIA Corporation. All rights reserved.
 This work is made available under the Nvidia Source Code License-NC. Click [here](LICENSE.txt) to view a copy of this license.
-
-For the code used in QFF, 
