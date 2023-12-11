@@ -120,23 +120,26 @@ def parse_ingp_file(ingp_file):
     render_step = snapshot['bounding_radius'] / 1024 * math.sqrt(3)
 
     grid = np.frombuffer(snapshot['density_grid_binary'], np.float16)
+    mips = grid.size // (G*G*G)
+
     inds = np.mgrid[:G, :G, :G]
     finfo = np.finfo(grid.dtype)
     m = morton3D(inds[0], inds[1], inds[2])
-    grid_vals = grid.reshape(-1, G*G*G)[:, m.reshape(-1)]
-    grid_texture = grid_vals[0].reshape(G, G, G).transpose(2, 1, 0)
-    grid_texture = np.clip(grid_texture, finfo.min, finfo.max)
     min_alpha = 0.005
-    grid_thres = -math.log(1 - min_alpha) / render_step
-    # print(grid_thres)
-    grid_mask = grid_texture > 0.1
-    # print(grid_mask.shape)
-    grid_rle = grid_to_rle(grid_mask)
-    # grid_mask_recovered = rle_to_grid(grid_rle, G)
-    # assert np.all(grid_mask == grid_mask_recovered)
+    flat_grids = grid.reshape(-1, G*G*G)
+    grid_rles = []
+    for mip in range(mips):
+        grid_vals = flat_grids[mip, m.reshape(-1)]
+        grid_texture = grid_vals.reshape(G, G, G).transpose(2, 1, 0)
+        grid_texture = np.clip(grid_texture, finfo.min, finfo.max)
+        grid_thres = -math.log(1 - min_alpha) / render_step
+        grid_mask = grid_texture > (0.1 / (2 ** mip))
+        # print(grid_mask.shape)
+        grid_rle = grid_to_rle(grid_mask)
+        grid_rles.append(grid_rle)
+
     log2_max_freq = enc_conf['log2_max_freq']
     log2_min_freq = enc_conf['log2_min_freq']
-
 
     freqs = 2 ** (np.arange(F).astype(np.float32) / (F - 1.0) * (log2_max_freq - log2_min_freq) + log2_min_freq)
 
@@ -150,8 +153,9 @@ def parse_ingp_file(ingp_file):
             'n_quants': Q,
             'rank': R,
             'grid_res': G,
+            'grid_mip': mips,
             'grid_thres': grid_thres,
-            'grid_rle': grid_rle,
+            'grid_rles': grid_rles,
             'poses': poses,
             'render_step': render_step,
             'up': snapshot['up_dir'],
