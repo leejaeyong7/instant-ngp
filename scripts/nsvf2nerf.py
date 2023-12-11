@@ -17,10 +17,12 @@ import sys
 import math
 import cv2
 import glob
+from pathlib import Path
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="convert a dataset from the nsvf paper format to nerf format transforms.json")
 
+	parser.add_argument("--scene_folder", required=True, help="Path to NSVF scene folder")
 	parser.add_argument("--aabb_scale", default=1, help="large scene scale factor")
 	parser.add_argument("--white_transparent", action="store_true", help="White is transparent")
 	parser.add_argument("--black_transparent", action="store_true", help="White is transparent")
@@ -40,12 +42,13 @@ if __name__ == "__main__":
 	args = parse_args()
 	AABB_SCALE = int(args.aabb_scale)
 	SKIP_EARLY = 0
-	IMAGE_FOLDER = "."
+	SCENE_FOLDER = Path(args.scene_folder)
+	IMAGE_FOLDER = str(SCENE_FOLDER)
 	img_files = [[],[],[]]
 	img_files[0] = sorted(glob.glob(os.path.join(IMAGE_FOLDER, "rgb", f"0_*.png")))
 	img_files[1] = sorted(glob.glob(os.path.join(IMAGE_FOLDER, "rgb", f"1_*.png")))
 	img_files[2] = sorted(glob.glob(os.path.join(IMAGE_FOLDER, "rgb", f"2_*.png")))
-	xx = open("bbox.txt").readline().strip().split(" ")
+	xx = open(SCENE_FOLDER / "bbox.txt").readline().strip().split(" ")
 	xx = [x for x in xx if x] # remove empty elements
 	bbox = tuple(map(float,xx))
 
@@ -72,7 +75,7 @@ if __name__ == "__main__":
 	elif (image.shape[2] == 4):
 		print("transparent alpha channel detected, first pixel alpha = ", image[0][0][3])
 
-	lines = map(str.strip,open("intrinsics.txt","r").readlines())
+	lines = map(str.strip,open(SCENE_FOLDER / "intrinsics.txt","r").readlines())
 	els = tuple(map(float, " ".join(lines).split(" ")))
 	print(els)
 	if len(els) == 11:
@@ -158,5 +161,5 @@ if __name__ == "__main__":
 			f["transform_matrix"] = f["transform_matrix"].tolist()
 		print(nframes,"frames")
 		print(f"writing {OUT_PATH}...")
-		with open(OUT_PATH, "w") as outfile:
+		with open(SCENE_FOLDER / OUT_PATH, "w") as outfile:
 			json.dump(out, outfile, indent=2)
