@@ -1,38 +1,11 @@
 {
-    "parent" : "base.json",
+    "parent" : "qff.json",
     "encoding": {
             "otype": "QFF3",
             "n_quants": 80,
             "n_features": 4,
             "n_frequencies": 4,
             "log2_min_freq": 0,
-            "log2_max_freq": 6
-    },
-    "network": {
-  		"otype": "FullyFusedMLP",
-  		"activation": "ReLU",
-  		"output_activation": "None",
-  		"n_neurons": 32,
-  		"n_hidden_layers": 1
-  	},
-  	"dir_encoding": {
-  		"otype": "Composite",
-  		"nested": [
-  			{
-  				"n_dims_to_encode": 3,
-  				"otype": "SphericalHarmonics",
-  				"degree": 4
-  			},
-  			{
-  				"otype": "Identity"
-  			}
-  		]
-  	},
-  	"rgb_network": {
-  		"otype": "FullyFusedMLP",
-  		"activation": "ReLU",
-  		"output_activation": "None",
-  		"n_neurons": 32,
-  		"n_hidden_layers": 1
-  	}
+            "log2_max_freq": 4
+    }
 }

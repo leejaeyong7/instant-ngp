@@ -131,9 +131,9 @@ def parse_ingp_file(ingp_file):
     for mip in range(mips):
         grid_vals = flat_grids[mip, m.reshape(-1)]
         grid_texture = grid_vals.reshape(G, G, G).transpose(2, 1, 0)
-        grid_texture = np.clip(grid_texture, finfo.min, finfo.max)
+        grid_texture = np.clip(grid_texture, 0, finfo.max)
         grid_thres = -math.log(1 - min_alpha) / render_step
-        grid_mask = grid_texture > (0.1 / (2 ** mip))
+        grid_mask = grid_texture > np.clip(flat_grids[mip], 0, finfo.max).mean()# 0.01 #(0.13 / (2 ** mip))
         # print(grid_mask.shape)
         grid_rle = grid_to_rle(grid_mask)
         grid_rles.append(grid_rle)
