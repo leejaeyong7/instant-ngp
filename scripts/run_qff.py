@@ -37,7 +37,7 @@ default_conf = {
                 "beta1": 0.9,
                 "beta2": 0.99,
                 "epsilon": 1e-15,
-                "l2_reg": 1e-6
+                "l2_reg": 1e-5
             }
         }
     },

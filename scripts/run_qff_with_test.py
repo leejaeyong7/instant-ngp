@@ -29,7 +29,7 @@ default_conf = {
         "nested": {
             "otype": "ExponentialDecay",
             "decay_start": 20000,
-            "decay_interval": 10000,
+            "decay_interval":10000,
             "decay_base": 0.33,
             "nested": {
                 "otype": "Adam",
@@ -37,7 +37,7 @@ default_conf = {
                 "beta1": 0.9,
                 "beta2": 0.99,
                 "epsilon": 1e-15,
-                "l2_reg": 1e-6
+                "l2_reg": 1e-6,
             }
         }
     },
@@ -47,7 +47,7 @@ default_conf = {
         "n_features": 4,
         "n_frequencies": 4,
         "log2_min_freq": 0,
-        "log2_max_freq": 6,
+        "log2_max_freq": 4,
         "rank":1
     },
     "network": {
@@ -131,10 +131,11 @@ def parse_args():
     parser.add_argument("--scene_path", type=str, help="Path to the json file.")
     parser.add_argument("--test_scene_path", type=str, required=True, help="JSON scene for testing.")
     parser.add_argument("--qff_type", type=int, choices=[1, 2, 3], default=2)
-    parser.add_argument("--min_freq", type=int, default=1)
+    parser.add_argument("--min_freq", type=int, default=0)
     parser.add_argument("--n_quants", type=int, default=80)
-    parser.add_argument("--max_freq", type=int, default=6)
+    parser.add_argument("--max_freq", type=int, default=3)
     parser.add_argument("--num_freq", type=int, default=4)
+    parser.add_argument("--near", type=float, default=0.1)
     parser.add_argument("--rank", type=int, default=4, help="Rank of the QFF encoding. For QFF3, this is always 1.")
     parser.add_argument("--n_features", type=int, default=4, help="Number of features to use in the QFF encoding. For now, only supports 4.")
     parser.add_argument("--n_steps", type=int, default=50000, help="Number of steps to train for before quitting.")
@@ -153,12 +154,14 @@ def main(args):
     testbed.load_training_data(scene_json)
     default_conf['encoding']['otype'] = f'QFF{args.qff_type}'
     rank = args.rank if args.qff_type != 3 else 1
-    default_conf['encoding']['log2_min_freq'] = int(args.min_freq)
-    default_conf['encoding']['log2_max_freq'] = int(args.max_freq)
+    default_conf['encoding']['log2_min_freq'] = args.min_freq
+    default_conf['encoding']['log2_max_freq'] = args.max_freq
     default_conf['encoding']['n_frequencies'] = int(args.num_freq)
     default_conf['encoding']['n_quants'] = int(args.n_quants)
-    default_conf['encoding']['rank'] = int(args.rank)
+    default_conf['encoding']['rank'] = rank
     default_conf['encoding']['n_features'] = min(int(args.n_features), 4)
+    print(default_conf['encoding'])
+
 
     with open(output_path/ f'{args.run_name}.json', 'w') as f:
         json.dump(default_conf, f, indent=4)
@@ -169,9 +172,14 @@ def main(args):
     testbed.exposure = 0.0
     testbed.shall_train = True
     testbed.nerf.render_with_lens_distortion = True
+    testbed.render_near_distance = max(args.near, 0.0)
+    testbed.training_batch_size = 2 ** 18
+    n_steps = args.n_steps
+
+    default_conf['optimizer']['nested']['decay_start'] = n_steps * 2 // 5
+    default_conf['optimizer']['nested']['decay_interval'] = n_steps // 5
 
     old_training_step = 0
-    n_steps = args.n_steps
 
     # training
     tqdm_last_update = 0
@@ -204,8 +212,6 @@ def main(args):
     totlpips_alex = 0
     totlpips_vgg = 0
     totcount = 0
-    minpsnr = 1000
-    maxpsnr = 0
 
     # Evaluate metrics on black background
     if args.test_background == 'black':
@@ -253,8 +259,6 @@ def main(args):
 
             psnr = mse2psnr(mse)
             totpsnr += psnr
-            minpsnr = psnr if psnr<minpsnr else minpsnr
-            maxpsnr = psnr if psnr>maxpsnr else maxpsnr
             totcount = totcount+1
             t.set_postfix(psnr = totpsnr/(totcount or 1))
 
