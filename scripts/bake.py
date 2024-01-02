@@ -125,15 +125,24 @@ def parse_ingp_file(ingp_file):
     inds = np.mgrid[:G, :G, :G]
     finfo = np.finfo(grid.dtype)
     m = morton3D(inds[0], inds[1], inds[2])
-    min_alpha = 0.005
+
+
+    exp_min_alpha_per_step = 0.01
+    norm_exp_min_alpha = exp_min_alpha_per_step / render_step
+    grid_alpha_th = norm_exp_min_alpha / G
+
     flat_grids = grid.reshape(-1, G*G*G)
     grid_rles = []
     for mip in range(mips):
         grid_vals = flat_grids[mip, m.reshape(-1)]
         grid_texture = grid_vals.reshape(G, G, G).transpose(2, 1, 0)
         grid_texture = np.clip(grid_texture, 0, finfo.max)
-        grid_thres = -math.log(1 - min_alpha) / render_step
-        grid_mask = grid_texture > np.clip(flat_grids[mip], 0, finfo.max).mean()# 0.01 #(0.13 / (2 ** mip))
+        grid_thres = 1
+        grid_mask = grid_texture > min(grid_alpha_th, grid_texture.mean())
+        # max pool last grid mask to grid mask
+
+        # update last grid mask
+        last_grid_mask = grid_mask
         # print(grid_mask.shape)
         grid_rle = grid_to_rle(grid_mask)
         grid_rles.append(grid_rle)
