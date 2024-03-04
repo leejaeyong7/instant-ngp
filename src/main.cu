@@ -23,9 +23,8 @@
 using namespace args;
 using namespace ngp;
 using namespace std;
-using namespace tcnn;
 
-NGP_NAMESPACE_BEGIN
+namespace ngp {
 
 int main_func(const std::vector<std::string>& arguments) {
 	ArgumentParser parser{
@@ -160,7 +159,7 @@ int main_func(const std::vector<std::string>& arguments) {
 	}
 
 	if (snapshot_flag) {
-		testbed.load_snapshot(get(snapshot_flag));
+		testbed.load_snapshot(static_cast<fs::path>(get(snapshot_flag)));
 	} else if (network_config_flag) {
 		testbed.reload_network_from_file(get(network_config_flag));
 	}
@@ -191,7 +190,7 @@ int main_func(const std::vector<std::string>& arguments) {
 	return 0;
 }
 
-NGP_NAMESPACE_END
+}
 
 #ifdef _WIN32
 int wmain(int argc, wchar_t* argv[]) {

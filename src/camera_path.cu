@@ -26,7 +26,7 @@
 
 using namespace nlohmann;
 
-NGP_NAMESPACE_BEGIN
+namespace ngp {
 
 CameraKeyframe lerp(const CameraKeyframe& p0, const CameraKeyframe& p1, float t, float t0, float t1) {
 	t = (t - t0) / (t1 - t0);
@@ -38,7 +38,7 @@ CameraKeyframe lerp(const CameraKeyframe& p0, const CameraKeyframe& p1, float t,
 	}
 
 	return {
-		slerp(p0.R, R1, t),
+		normalize(slerp(p0.R, R1, t)),
 		p0.T + (p1.T - p0.T) * t,
 		p0.slice + (p1.slice - p0.slice) * t,
 		p0.scale + (p1.scale - p0.scale) * t,
@@ -48,6 +48,12 @@ CameraKeyframe lerp(const CameraKeyframe& p0, const CameraKeyframe& p1, float t,
 		p0.glow_mode,
 		p0.glow_y_cutoff + (p1.glow_y_cutoff - p0.glow_y_cutoff) * t,
 	};
+}
+
+CameraKeyframe normalize(const CameraKeyframe& p0) {
+	CameraKeyframe result = p0;
+	result.R = normalize(result.R);
+	return result;
 }
 
 CameraKeyframe spline(float t, const CameraKeyframe& p0, const CameraKeyframe& p1, const CameraKeyframe& p2, const CameraKeyframe& p3) {
@@ -67,7 +73,7 @@ CameraKeyframe spline(float t, const CameraKeyframe& p0, const CameraKeyframe& p
 		float b = (3.f*ttt-6.f*tt+4.f)*(1.f/6.f);
 		float c = (-3.f*ttt+3.f*tt+3.f*t+1.f)*(1.f/6.f);
 		float d = ttt*(1.f/6.f);
-		return p0 * a + p1 * b + p2 * c + p3 * d;
+		return normalize(p0 * a + p1 * b + p2 * c + p3 * d);
 	}
 }
 
@@ -157,7 +163,7 @@ int CameraPath::imgui(char path_filename_buf[1024], float frame_milliseconds, ma
 	if (ImGui::Button("Load")) {
 		try {
 			load(path_filename_buf, first_xform);
-		} catch (std::exception& e) {
+		} catch (const std::exception& e) {
 			ImGui::OpenPopup("Camera path load error");
 			camera_path_load_error_string = std::string{"Failed to load camera path: "} + e.what();
 		}
@@ -259,7 +265,7 @@ int CameraPath::imgui(char path_filename_buf[1024], float frame_milliseconds, ma
 }
 
 bool debug_project(const mat4& proj, vec3 p, ImVec2& o) {
-	vec4 ph(p, 1.0f);
+	vec4 ph{p.x, p.y, p.z, 1.0f};
 	vec4 pa = proj * ph;
 	if (pa.w <= 0.f) {
 		return false;
@@ -323,12 +329,12 @@ bool CameraPath::imgui_viz(ImDrawList* list, mat4 &view2proj, mat4 &world2proj, 
 	bool changed = false;
 	// float flx = focal.x;
 	float fly = focal.y;
-	mat4 view2proj_guizmo = transpose(mat4(
+	mat4 view2proj_guizmo = transpose(mat4{
 		fly * 2.0f / aspect, 0.0f, 0.0f, 0.0f,
 		0.0f, -fly * 2.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, (zfar + znear) / (zfar - znear), -(2.0f * zfar * znear) / (zfar - znear),
-		0.0f, 0.0f, 1.0f, 0.0f
-	));
+		0.0f, 0.0f, 1.0f, 0.0f,
+	});
 
 	if (!update_cam_from_path) {
 		ImDrawList* list = ImGui::GetForegroundDrawList();
@@ -350,7 +356,7 @@ bool CameraPath::imgui_viz(ImDrawList* list, mat4 &view2proj, mat4 &world2proj, 
 				int i0 = cur_cam_i; while (i0 > 0 && keyframes[cur_cam_i].same_pos_as(keyframes[i0 - 1])) i0--;
 				int i1 = cur_cam_i; while (i1 < keyframes.size() - 1 && keyframes[cur_cam_i].same_pos_as(keyframes[i1 + 1])) i1++;
 				for (int i = i0; i <= i1; ++i) {
-					keyframes[i].T = matrix[3].xyz;
+					keyframes[i].T = matrix[3].xyz();
 					keyframes[i].R = quat(mat3(matrix));
 				}
 				changed=true;
@@ -375,4 +381,4 @@ bool CameraPath::imgui_viz(ImDrawList* list, mat4 &view2proj, mat4 &world2proj, 
 }
 #endif //NGP_GUI
 
-NGP_NAMESPACE_END
+}
