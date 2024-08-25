@@ -1,12 +1,12 @@
 {
-	"parent" : "qff.json",
+	"parent" : "ppng.json",
 	"encoding": {
-			"otype": "QFF1",
+			"otype": "PPNG2",
 			"n_quants": 80,
 			"n_features": 4,
 			"n_frequencies": 4,
 			"log2_min_freq": 0,
-			"log2_max_freq": 4,
-			"rank": 8
+			"log2_max_freq": 5,
+			"rank": 2
 	}
 }
