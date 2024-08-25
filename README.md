@@ -1,26 +1,26 @@
-# Instant-QFF
-This repository contains the customized Instant-NGP codebased for QFF: Quantized Fourier Features. 
-QFF allows real-time rendering of NeRF models in a web-browser, without any post-processing process (e.g., baking).
-QFF also trains roughly on the same speed of HashGrid, using similar file size. 
+# Instant-PPNG
+This repository contains the customized Instant-NGP codebased for Plenoptic PNG: Real-Time Neural Radiance Fields in 150 KB
+PPNG allows real-time rendering of NeRF models in a web-browser, without any post-processing process (e.g., baking).
+PPNG also trains roughly on the same speed of HashGrid, using similar file size. 
 
 Please refer to the technical paper for the details.
 
 ## Installation
 Please follow the original installation instructions for the Instant-NGP repository. 
-One major modification from the original repository is the use of modified [tiny-cuda-nn](https://github.com/leejaeyong7/tiny-cuda-nn) repository which contains the QFF implementation.
+One major modification from the original repository is the use of modified [tiny-cuda-nn](https://github.com/leejaeyong7/tiny-cuda-nn) repository which contains the PPNG implementation.
 Since the submodules are set using the correct commit, simply installing the NGP repository should suffice. 
 
 ## Running
-To train the model with the QFF, please
+To train the model with the PPNG, please
 
 For interactive run, please use
 ```bash
-./instant-ngp --config configs/nerf/qff.json data/nerf/fox
+./instant-ngp --config configs/nerf/ppng_2.json data/nerf/fox
 ```
 
 For python based headless run, please use
 ```bash
-python scripts/run.py --network configs/nerf/qff.json --scene data/nerf/fox --save_snapshot PATH_TO_SAVE_INGP_FILE
+python scripts/run.py --network configs/nerf/ppng_2.json --scene data/nerf/fox --save_snapshot PATH_TO_SAVE_INGP_FILE
 
 ```
 
@@ -34,7 +34,7 @@ python scripts/parse_ingp.py --ingp_file PATH_TO_SAVED_INGP_FILE --output_path P
 Because this repository is intended for training only, we provide visualization code in a [separate]() repository.
 
 ## Original License and Citation
-Please cite the original Instant-NGP paper and the QFF for use of this work
+Please cite the original Instant-NGP paper and the PPNG for use of this work
 
 ```bibtex
 @article{mueller2022instant,
