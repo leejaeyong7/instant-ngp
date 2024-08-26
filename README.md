@@ -21,17 +21,16 @@ For interactive run, please use
 For python based headless run, please use
 ```bash
 python scripts/run.py --network configs/nerf/ppng_2.json --scene data/nerf/fox --save_snapshot PATH_TO_SAVE_INGP_FILE
-
 ```
 
 
 ## Visualizing the runs
 We provide a code to translate trained `ingp` files into a render friendly format. 
 ```bash
-python scripts/parse_ingp.py --ingp_file PATH_TO_SAVED_INGP_FILE --output_path PATH_TO_OUTPUT_FILES
+python scripts/bake.py --ingp_file PATH_TO_SAVED_INGP_FILE --output_file PATH_TO_OUTPUT_FILES
 ```
 
-Because this repository is intended for training only, we provide visualization code in a [separate]() repository.
+Because this repository is intended for training only, we provide visualization code in a [separate](https://github.com/leejaeyong7/ppng) repository.
 
 ## Original License and Citation
 Please cite the original Instant-NGP paper and the PPNG for use of this work

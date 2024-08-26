@@ -107,13 +107,13 @@ def parse_ingp_file(ingp_file):
     dir_out = get_dir_out(dir_conf)
     snapshot = ckpt['snapshot']
     otype = enc_conf['otype']
-    assert otype.startswith('QFF')
-    qff_type = int(otype.replace('QFF', ''))
+    assert otype.startswith('PPNG')
+    ppng_type = int(otype.replace('PPNG', ''))
 
     C = enc_conf['n_features']
     Q = enc_conf['n_quants']
     F = enc_conf['n_frequencies']
-    default_rank = 1 if qff_type == 3 else 4
+    default_rank = 1 if ppng_type == 3 else 4
     R = enc_conf.get('rank', default_rank)
     G = snapshot['density_grid_size']
     poses = [p['start'] for p in ckpt['snapshot']['nerf']['dataset']['xforms']]
@@ -156,7 +156,7 @@ def parse_ingp_file(ingp_file):
             'freqs': freqs.tolist(),
             'n_density_layers': [], # output layer sizes
             'n_color_layers': [], # output layer sizes
-            'qff_type': qff_type,
+            'ppng_type': ppng_type,
             'n_freqs': F,
             'n_feats': C,
             'n_quants': Q,
@@ -175,28 +175,28 @@ def parse_ingp_file(ingp_file):
             2: F*2*3*C*Q*Q*R,
             3: F*2*C*Q*Q*Q,
             }
-    qff_buffer_size = buffer_sizes[qff_type]
-    qff_raw_buffers = snapshot['params_binary'][-qff_buffer_size*2:]
-    if qff_type == 1:
+    ppng_buffer_size = buffer_sizes[ppng_type]
+    ppng_raw_buffers = snapshot['params_binary'][-ppng_buffer_size*2:]
+    if ppng_type == 1:
         # Fx2x3xCxQxR => 3xFx2xQxRxC
-        qff_buffers = np.frombuffer(qff_raw_buffers, np.float16).reshape(F, 2, 3, C, Q, R).transpose(2, 0, 1, 4, 5, 3)
-    elif qff_type == 2:
+        ppng_buffers = np.frombuffer(ppng_raw_buffers, np.float16).reshape(F, 2, 3, C, Q, R).transpose(2, 0, 1, 4, 5, 3)
+    elif ppng_type == 2:
         # Fx2x3xCxQxR => 3xFx2xQxQxRxC
-        qff_buffers = np.frombuffer(qff_raw_buffers, np.float16).reshape(F, 2, 3, C, Q, Q, R).transpose(2, 0, 1, 4, 5, 6, 3)
-    elif qff_type == 3:
+        ppng_buffers = np.frombuffer(ppng_raw_buffers, np.float16).reshape(F, 2, 3, C, Q, Q, R).transpose(2, 0, 1, 4, 5, 6, 3)
+    elif ppng_type == 3:
         # Fx2xCxQxQxQ => Fx2xQxQxQxC
-        qff_buffers = np.frombuffer(qff_raw_buffers, np.float16).reshape(F, 2, Q, Q, Q, C)
+        ppng_buffers = np.frombuffer(ppng_raw_buffers, np.float16).reshape(F, 2, Q, Q, Q, C)
     else:
         raise NotImplementedError
 
 
-    data_to_write['qff_buffer'] = qff_buffers.tobytes()
+    data_to_write['ppng_buffer'] = ppng_buffers.tobytes()
 
     # write MLP to files
-    mlp_raw_buffers = snapshot['params_binary'][:-qff_buffer_size*2]
+    mlp_raw_buffers = snapshot['params_binary'][:-ppng_buffer_size*2]
     mlp_buffers = np.frombuffer(mlp_raw_buffers, np.float16)
 
-    # for now, all QFF buffer types have the same MLP structure
+    # for now, all PPNG buffer types have the same MLP structure
     # density = (Fx2xC) x 16 (density + features)
     # color = 16 + 16 (spherical harmonics) + n_extra_learnable_dims (for image-based lighting)
 
@@ -218,7 +218,7 @@ def parse_ingp_file(ingp_file):
         mlp_buffer = mlp_buffers[offset: offset + (dnet_in * dnet_w)]
         # in x out => in/4 x 4 x out/4 x 4 => in/4 x out/4 x (4 x 4) =>
         mlp_buffer = mlp_buffer.reshape(dnet_w, dnet_in).T
-        data_to_write[f'qff_density_layer_{i}'] = js_mlp_buffer(mlp_buffer)
+        data_to_write[f'ppng_density_layer_{i}'] = js_mlp_buffer(mlp_buffer)
         data_to_write[f'n_density_layers'].append(dnet_w)
 
         offset += dnet_in * dnet_w
@@ -264,7 +264,7 @@ def parse_ingp_file(ingp_file):
 
         mlp_buffer = mlp_buffer[:crop_in, :crop_out]
 
-        data_to_write[f'qff_color_layer_{i}'] = js_mlp_buffer(mlp_buffer)
+        data_to_write[f'ppng_color_layer_{i}'] = js_mlp_buffer(mlp_buffer)
 
         if i == cnet_i:
             cnet_w = 4
@@ -285,8 +285,8 @@ def bake(ingp_file, output_file):
         f.write(cbor2.dumps(output_data))
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Converts INGP file into QFF file")
+    parser = argparse.ArgumentParser(description="Converts INGP file into PPNG file")
     parser.add_argument("--ingp_file", required=True, help="path to the INGP file")
-    parser.add_argument("--output_file", required=True, help="path to the output QFF file")
+    parser.add_argument("--output_file", required=True, help="path to the output PPNG file")
     args = parser.parse_args()
     bake(args.ingp_file, args.output_file)

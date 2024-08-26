@@ -42,7 +42,7 @@ default_conf = {
         }
     },
     "encoding": {
-        "otype": "QFF1",
+        "otype": "PPNG1",
         "n_quants": 80,
         "n_features": 4,
         "n_frequencies": 4,
@@ -130,14 +130,14 @@ def parse_args():
     parser.add_argument("--output_path", type=str, required=True, help="Path to the output directory.")
     parser.add_argument("--scene_path", type=str, help="Path to the json file.")
     parser.add_argument("--test_scene_path", type=str, required=True, help="JSON scene for testing.")
-    parser.add_argument("--qff_type", type=int, choices=[1, 2, 3], default=2)
+    parser.add_argument("--ppng_type", type=int, choices=[1, 2, 3], default=2)
     parser.add_argument("--min_freq", type=int, default=0)
     parser.add_argument("--n_quants", type=int, default=80)
     parser.add_argument("--max_freq", type=int, default=3)
     parser.add_argument("--num_freq", type=int, default=4)
     parser.add_argument("--near", type=float, default=0.1)
-    parser.add_argument("--rank", type=int, default=4, help="Rank of the QFF encoding. For QFF3, this is always 1.")
-    parser.add_argument("--n_features", type=int, default=4, help="Number of features to use in the QFF encoding. For now, only supports 4.")
+    parser.add_argument("--rank", type=int, default=4, help="Rank of the PPNG encoding. For PPNG3, this is always 1.")
+    parser.add_argument("--n_features", type=int, default=4, help="Number of features to use in the PPNG encoding. For now, only supports 4.")
     parser.add_argument("--n_steps", type=int, default=50000, help="Number of steps to train for before quitting.")
     parser.add_argument("--test_background", type=str, choices=['black', 'white'], default='white', help="Set background color for testing images")
 
@@ -152,8 +152,8 @@ def main(args):
     scene_json = args.scene_path
 
     testbed.load_training_data(scene_json)
-    default_conf['encoding']['otype'] = f'QFF{args.qff_type}'
-    rank = args.rank if args.qff_type != 3 else 1
+    default_conf['encoding']['otype'] = f'PPNG{args.ppng_type}'
+    rank = args.rank if args.ppng_type != 3 else 1
     default_conf['encoding']['log2_min_freq'] = args.min_freq
     default_conf['encoding']['log2_max_freq'] = args.max_freq
     default_conf['encoding']['n_frequencies'] = int(args.num_freq)
@@ -204,7 +204,7 @@ def main(args):
     elapsed = toc - tic
 
     testbed.save_snapshot(str(output_path / f"{args.run_name}.ingp"), False)
-    bake(output_path / f"{args.run_name}.ingp", output_path / f"{args.run_name}.qff")
+    bake(output_path / f"{args.run_name}.ingp", output_path / f"{args.run_name}.ppng")
 
     totmse = 0
     totpsnr = 0
