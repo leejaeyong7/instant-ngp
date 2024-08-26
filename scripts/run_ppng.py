@@ -134,7 +134,7 @@ def parse_args():
     parser.add_argument("--n_quants", type=int, default=80)
     parser.add_argument("--max_freq", type=int, default=6)
     parser.add_argument("--num_freq", type=int, default=4)
-    parser.add_argument("--rank", type=int, default=4, help="Rank of the PPNG encoding. For PPNG3, this is always 1.")
+    parser.add_argument("--rank", type=int, default=2, help="Rank of the PPNG encoding. For PPNG3, this is always 1.")
     parser.add_argument("--n_features", type=int, default=4, help="Number of features to use in the PPNG encoding. For now, only supports 4.")
     parser.add_argument("--n_steps", type=int, default=50000, help="Number of steps to train for before quitting.")
 

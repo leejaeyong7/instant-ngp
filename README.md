@@ -11,26 +11,40 @@ One major modification from the original repository is the use of modified [tiny
 Since the submodules are set using the correct commit, simply installing the NGP repository should suffice. 
 
 ## Running
-To train the model with the PPNG, please
+To train the model with the PPNG, please use:
+```bash
+python scripts/run_ppng.py --run_name fox \
+                           --scene_path data/nerf/fox/transforms.json \
+                           --output_path outputs/
 
-For interactive run, please use
+# OR, to run with test file supports
+python scripts/run_ppng_with_test.py --run_name fox \
+                                     --scene_path ../data/chair/transforms_train.json \
+                                     --test_scene_path ../data/chair/transforms_test.json \
+                                     --output_path outputs/
+```
+This will train PPNG on data provided by `scene_path`, to output `output_path/fox.ingp` and `output_path/fox.ppng` files.
+`output_path/fox.ingp` contains Instant-NGP weights and `output_path/fox.ppng` contains translated file that can be rendered via web-browser. 
+
+We additionally support interactive run with:
 ```bash
 ./instant-ngp --config configs/nerf/ppng_2.json data/nerf/fox
 ```
 
-For python based headless run, please use
+and python headless run with various config with:
 ```bash
-python scripts/run.py --network configs/nerf/ppng_2.json --scene data/nerf/fox --save_snapshot PATH_TO_SAVE_INGP_FILE
+python scripts/run.py --config configs/nerf/ppng_2.json --scene data/nerf/fox --save_snapshot PATH_TO_SAVE_INGP_FILE
 ```
-
 
 ## Visualizing the runs
-We provide a code to translate trained `ingp` files into a render friendly format. 
+
+Files with PPNG extensions can be visualized by our interactive viewer available at [separate](https://github.com/leejaeyong7/ppng) repository.
+
+We additionally provide a code to translate trained `ingp` files of PPNG weights into a render friendly format. 
 ```bash
-python scripts/bake.py --ingp_file PATH_TO_SAVED_INGP_FILE --output_file PATH_TO_OUTPUT_FILES
+python scripts/bake.py --ingp_file PATH_TO_SAVED_INGP_FILE.ingp --output_file PATH_TO_OUTPUT_FILES.ppng
 ```
 
-Because this repository is intended for training only, we provide visualization code in a [separate](https://github.com/leejaeyong7/ppng) repository.
 
 ## Original License and Citation
 Please cite the original Instant-NGP paper and the PPNG for use of this work
