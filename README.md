@@ -17,14 +17,14 @@ python scripts/run_ppng.py --run_name fox \
                            --scene_path data/nerf/fox/transforms.json \
                            --output_path outputs/
 
-# OR, to run with test file supports
-python scripts/run_ppng_with_test.py --run_name fox \
+# OR, to run with test file supports (e.g, for NeRFSynthetic dataset)
+python scripts/run_ppng_with_test.py --run_name chair \
                                      --scene_path ../data/chair/transforms_train.json \
                                      --test_scene_path ../data/chair/transforms_test.json \
                                      --output_path outputs/
 ```
 This will train PPNG on data provided by `scene_path`, to output `output_path/fox.ingp` and `output_path/fox.ppng` files.
-`output_path/fox.ingp` contains Instant-NGP weights and `output_path/fox.ppng` contains translated file that can be rendered via web-browser. 
+`output_path/fox.ingp` contains Instant-NGP weights and `output_path/fox.ppng` contains translated file that can be rendered via [web-browser](https://github.com/leejaeyong7/ppng-viewer). 
 
 We additionally support interactive run with:
 ```bash
@@ -38,7 +38,7 @@ python scripts/run.py --config configs/nerf/ppng_2.json --scene data/nerf/fox --
 
 ## Visualizing the runs
 
-Files with PPNG extensions can be visualized by our interactive viewer available at [separate](https://github.com/leejaeyong7/ppng) repository.
+Files with PPNG extensions can be visualized by our interactive viewer available at [separate](https://github.com/leejaeyong7/ppng-viewer) repository.
 
 We additionally provide a code to translate trained `ingp` files of PPNG weights into a render friendly format. 
 ```bash
@@ -47,6 +47,7 @@ python scripts/bake.py --ingp_file PATH_TO_SAVED_INGP_FILE.ingp --output_file PA
 
 
 ## Original License and Citation
+Majority of the codebase listed here are using original Instant-NGP code. 
 Please cite the original Instant-NGP paper and the PPNG for use of this work
 
 ```bibtex
@@ -66,6 +67,16 @@ Please cite the original Instant-NGP paper and the PPNG for use of this work
     doi = {10.1145/3528223.3530127},
     publisher = {ACM},
     address = {New York, NY, USA},
+}
+
+@misc{lee2024ppng,
+      title={Plenoptic PNG: Real-Time Neural Radiance Fields in 150 KB}, 
+      author={Jae Yong Lee and Yuqun Wu and Chuhang Zou and Derek Hoiem and Shenlong Wang},
+      year={2024},
+      eprint={2409.15689},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2409.15689}, 
 }
 ```
 
